@@ -1,7 +1,7 @@
 % OPTIMAL COMPENSATION FOR NEURON LOSS
 %
 % These programs allow the user to reproduce and manipulate the 
-% Figures 1-6 of the paper "Optimal Compensation for Neuron Loss" by 
+% Figures 1-9 of the paper "Optimal Compensation for Neuron Loss" by 
 % David Barrett, Sophie Deneve, and Christian Machens
 %
 % Note: Figure7 and Figure89 require the function quadprog from the
