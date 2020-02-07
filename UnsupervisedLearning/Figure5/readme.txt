@@ -3,6 +3,10 @@ dataset, and plots fig 5. If you launch it, everything should run
 smoothly, and it should take around 6 to 10 hours with a typical
 computer.
 
+The speech data set (38MB) can be downloaded via
+
+https://www.dropbox.com/s/1i5po9dlt7m9n1k/speech.mat?dl=0
+
 If you prefer to use the already learnt weights (Icurrent) and just
 retrain the network on the new stimulus, set the variable 'learnanew' 
 to 1, then run fig5Anew. (takes 5 to 10 minutes)
