@@ -1,0 +1,7 @@
+numpy
+matplotlib
+numba
+holoviews
+jupyter
+scipy
+colorcet
