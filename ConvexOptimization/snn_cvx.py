@@ -203,6 +203,7 @@ def run_snn(x,
             sigma_v=0.,
             silence_T=None,
             silence_prop=0,
+            delay=0
             ):
     """
     Function to simulate the spiking network for defined connectivity parameters, thresholds and time parameters.
@@ -230,6 +231,8 @@ def run_snn(x,
         From which time-point to silence neurons
     silence_prop: float
         Which proportion of the population to silence
+    delay: int
+        Synaptic delay in recurrent connections in number of timesteps
 
     Returns
     -------
@@ -279,6 +282,8 @@ def run_snn(x,
         V_membrane[:, t + 1] = V_membrane[:, t] + dt * (-leak * V_membrane[:, t] +
                                                         np.dot(F_weights, command_x)
                                                         ) + np.sqrt(2 * dt * leak) * sigma_v * np.random.randn(N)
+        if t >= delay:
+            V_membrane[:, t + 1] = V_membrane[:, t + 1] + np.dot(omega_rec, spikes[:, t-delay])
 
         # get positive/negative inputs
         command_x_pos, command_x_neg = command_x.copy(), command_x.copy()
@@ -286,12 +291,14 @@ def run_snn(x,
         command_x_neg[command_x > 0] = 0
 
         # update currents
-        dI_I = np.dot(F_neg, command_x_pos) + np.dot(F_pos, command_x_neg)  # inhibitory inputs
-        dI_I += np.dot(omega_i, spikes[:, t] / dt)
-        I_I[:, t + 1] = I_I[:, t] + dt * (-I_I[:, t] * leak + dI_I)
-        dI_E = np.dot(F_pos, command_x_pos) + np.dot(F_neg, command_x_neg)  # excitatory inputs
-        dI_E += np.dot(omega_e, spikes[:, t] / dt)
-        I_E[:, t + 1] = I_E[:, t] + dt * (-I_E[:, t] * leak + dI_E)
+        dI_I = np.dot(F_neg, command_x_pos) + np.dot(F_pos, command_x_neg) # inhibitory inputs
+        if t >= delay:
+            dI_I += np.dot(omega_i, spikes[:, t-delay] / dt)
+        I_I[:, t+1] = I_I[:, t] + dt*(-I_I[:, t]*leak + dI_I)
+        dI_E = np.dot(F_pos, command_x_pos) + np.dot(F_neg, command_x_neg) # excitatory inputs
+        if t >= delay:
+            dI_E += np.dot(omega_e, spikes[:, t-delay] / dt)
+        I_E[:, t+1] = I_E[:, t] + dt*(-I_E[:, t]*leak + dI_E)
 
         # update firing rates
         firing_rates[:, t + 1] = (1 - leak * dt) * firing_rates[:, t]
@@ -304,17 +311,25 @@ def run_snn(x,
         diff_voltage_thresh = V_membrane[:, t + 1] - thresholds
         spiking_neurons_indices = np.arange(N)[diff_voltage_thresh >= 0]
         if spiking_neurons_indices.size > 0:
-            # Pick the neuron which likely would have spiked first, by max distance from threshold
-            to_pick = np.argmax(diff_voltage_thresh[spiking_neurons_indices])
-            s = spiking_neurons_indices[to_pick]
+            if delay == 0:
+                # Pick the neuron which likely would have spiked first, by max distance from threshold
+                to_pick = np.argmax(diff_voltage_thresh[spiking_neurons_indices])
+                s = spiking_neurons_indices[to_pick]
 
-            # Update membrane potential
-            V_membrane[s, t + 1] -= mu
-            V_membrane[:, t + 1] += omega[:, s]
-            spikes[s, t + 1] = 1
+                # Update membrane potential
+                V_membrane[s, t + 1] -= mu
+                spikes[s, t + 1] = 1
 
-            # Update firing rates
-            firing_rates[s, t + 1] += 1
+                # Update firing rates
+                firing_rates[s, t + 1] += 1
+            else:
+                # Update membrane potential
+                V_membrane[spiking_neurons_indices, t + 1] -= mu
+                # V_membrane[:, t + 1] += omega[:, s]
+                spikes[spiking_neurons_indices, t + 1] = 1
+
+                # Update firing rates
+                firing_rates[spiking_neurons_indices, t + 1] += 1
 
         else:
             pass
