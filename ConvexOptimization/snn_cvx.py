@@ -256,6 +256,12 @@ def run_snn(x,
     I_E = np.zeros((N, num_bins))
     I_I = np.zeros((N, num_bins))
 
+    # split connectivity into recurrent and self-connections
+    omega_self = np.copy(omega)
+    omega_rec = np.copy(omega)
+    omega_rec[np.eye(N) == 1] = 0
+    omega_self[np.eye(N) == 0] = 0
+
     # separate recurrent weights into inhibitory and excitatory
     omega_e, omega_i = omega.copy(), omega.copy()
     omega_e[omega < 0] = 0
@@ -280,7 +286,8 @@ def run_snn(x,
 
         # update membrane potential
         V_membrane[:, t + 1] = V_membrane[:, t] + dt * (-leak * V_membrane[:, t] +
-                                                        np.dot(F_weights, command_x)
+                                                        np.dot(F_weights, command_x) +
+                                                        np.dot(omega_self, spikes[:, t]/dt)
                                                         ) + np.sqrt(2 * dt * leak) * sigma_v * np.random.randn(N)
         if t >= delay:
             V_membrane[:, t + 1] = V_membrane[:, t + 1] + np.dot(omega_rec, spikes[:, t-delay])
