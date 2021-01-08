@@ -194,6 +194,7 @@ def update_weights(x_sample,
 
 
 def run_snn(x,
+            x_noise,
             F_weights,
             omega,
             thresholds,
@@ -213,6 +214,8 @@ def run_snn(x,
     ----------
     x: array
         Input array (shape=[K, num_bins])
+    x_noise: array
+        Input noise array (shape=[K, num_bins])
     F_weights: array
         Feed-forward weights (shape=[N, K])
     omega: array
@@ -243,9 +246,9 @@ def run_snn(x,
     array
         network voltages (shape=[N x num_bins])
     array
-        network excitatory currents (shape=[N x num_bins])
+        network excitatory currents (excluding effects of voltage noise and x_noise) (shape=[N x num_bins])
     array
-        network inhibitory currents (shape=[N x num_bins])
+        network inhibitory currents (excluding effects of voltage noise and x_noise) (shape=[N x num_bins])
     """
     # initialize system
     N = F_weights.shape[0]  # number of neurons
@@ -283,10 +286,13 @@ def run_snn(x,
         # compute command signal
         command_x = (x[:, t + 1] -
                      x[:, t]) / dt + leak * x[:, t]
+        command_x_noise =  (x_noise[:, t + 1] -
+                            x_noise[:, t]) / dt + leak * x_noise[:, t]
 
         # update membrane potential
         V_membrane[:, t + 1] = V_membrane[:, t] + dt * (-leak * V_membrane[:, t] +
                                                         np.dot(F_weights, command_x) +
+                                                        np.dot(F_weights, command_x_noise) +
                                                         np.dot(omega_self, spikes[:, t]/dt)
                                                         ) + np.sqrt(2 * dt * leak) * sigma_v * np.random.randn(N)
         if t >= delay:
